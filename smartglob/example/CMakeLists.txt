@@ -7,16 +7,13 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ../modules)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/../modules)
 
 include(SmartGlob)
 
 project(Hello)
 
-set(CUSTOM_EXTENSIONS .h .c)
-
 smartglob(GLOB_ME_SRCS src/glob-me)
-#smartglob(GLOB_ME_SRCS src/glob-me EXTENSIONS ${CUSTOM_EXTENSIONS})
 
 add_executable(hello
 	${GLOB_ME_SRCS}

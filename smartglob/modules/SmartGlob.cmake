@@ -23,6 +23,12 @@
 
 include(CMakeParseArguments)
 
+function(sdbg)
+    if(SMARTGLOB_DEBUG)
+        message(">  " ${ARGN})
+    endif()
+endfunction()
+
 function(smartglob_format_prefix out_result path)
 
     cmake_parse_arguments("" "TARGET" "" "" ${ARGN})
@@ -41,7 +47,11 @@ endfunction()
 
 function(smartglob_glob path pattern out_filelist)
 
+    sdbg("begin smartglob_glob()")
+
     file(GLOB all_files ${path}/*.*)
+    
+    sdbg("globbing path:${path} pattern:${pattern}")
 
     foreach(file ${all_files})
 
@@ -50,48 +60,81 @@ function(smartglob_glob path pattern out_filelist)
 
         if(match_result)
             set(result ${result} ${file})
+            sdbg("    match: ${file}")
         endif()
 
     endforeach()
 
     set(${out_filelist} ${result} PARENT_SCOPE)
+    
+    sdbg("end smartglob_glob()")
 
 endfunction()
 
-function(smartglob out_filelist path)
+function(smartglob_build_extension_filter out_pattern extensions)
 
-    ## parse args
+    string(REGEX REPLACE "[ ,]+" ";" extensions ${extensions})
 
-    cmake_parse_arguments(SMARTGLOB "" "" "EXTENSIONS" ${ARGN})
-
-    list(LENGTH SMARTGLOB_EXTENSIONS len)
-
-    if(NOT len)
-        set(SMARTGLOB_EXTENSIONS .h .hpp .hxx .c .cpp .cxx .m .mm)
-    endif()
-    
-    ## construct an extension filter from a list of extensions
-
-    foreach(ext ${SMARTGLOB_EXTENSIONS})
+    foreach(ext ${extensions})
         string(REGEX REPLACE "\\." "\\\\." ext ${ext})
         set(pattern ${pattern}.*${ext}$|)
     endforeach()
 
     string(REGEX REPLACE "\\|$" "" pattern ${pattern})
+    
+    set(${out_pattern} ${pattern} PARENT_SCOPE)
 
+endfunction()
+
+function(smartglob out_filelist path)
+
+    sdbg("begin smartglob()")
+
+    ## parse args
+    
+    set(option)
+    set(single REGEX)
+    set(multi EXTENSIONS)
+    
+    cmake_parse_arguments(SMARTGLOB "${option}" "${single}" "${multi}" ${ARGN})
+    
+    ## configure the regex from from a list of extensions or an explicit expression
+    
+    if(SMARTGLOB_REGEX)
+    
+        sdbg("SMARTGLOB_REGEX: ${SMARTGLOB_REGEX}")
+        set(pattern ${SMARTGLOB_REGEX})
+        
+    elseif(SMARTGLOB_EXTENSIONS)
+
+        sdbg("SMARTGLOB_EXTENSIONS: ${SMARTGLOB_EXTENSIONS}")
+        smartglob_build_extension_filter(pattern ${SMARTGLOB_EXTENSIONS})
+        
+    else()
+    
+        set(extensions ".h .hpp .hxx .c .cpp .cxx .m .mm")
+        sdbg("extensions: ${extensions}")
+        smartglob_build_extension_filter(pattern ${extensions})        
+    
+    endif()
+    
+    sdbg("pattern: ${pattern}")
+    
     ## setup definition header
     
-    smartglob_format_prefix(prefix ${path})
+    smartglob_format_prefix(prefix ${path})    
+    sdbg("prefix: ${prefix}")
     
     set(cache_text ${CMAKE_SOURCE_DIR}\n${path}\n${pattern}\n)
 
     ## glob the files in given path and filter them
-
+    
     smartglob_glob(${path} ${pattern} glob)
 
     ## export the cache file
 
-    set(cache_file ${CMAKE_BINARY_DIR}/smartglob/${prefix}.globdef)
+    set(cache_file ${CMAKE_BINARY_DIR}/smartglob/${prefix}.globdef)    
+    sdbg("cache_file: ${cache_file}")
 
     foreach(file ${glob})
         set(cache_text ${cache_text}${file}\n)
@@ -99,7 +142,7 @@ function(smartglob out_filelist path)
 
     file(WRITE ${cache_file} ${cache_text})
     
-    # message("-- SmartGlob cache file written to: ${cache_file}")
+    sdbg("cache_text:\n\n${cache_text}")
     
     ## export results to parent scope
     
@@ -108,6 +151,7 @@ function(smartglob out_filelist path)
     ## some introspection
     
     find_file(module_path "SmartGlob.cmake" PATHS ${CMAKE_MODULE_PATH})
+    sdbg("module_path: ${module_path}")
     
     if(NOT module_path)
         message(FATAL_ERROR "Could not determine the location of SmartGlob.cmake; please set CMAKE_MODULE_PATH accordingly.")
@@ -120,23 +164,36 @@ function(smartglob out_filelist path)
         )
 
     set(SMARTGLOB_PREFLIGHT_TARGETS ${SMARTGLOB_PREFLIGHT_TARGETS} smartglob-${prefix} PARENT_SCOPE)
+    
+    sdbg("end smartglob()")
 
 endfunction()
 
 function(smartglob_add_dependencies target)
 
-    add_dependencies(${target} ${SMARTGLOB_PREFLIGHT_TARGETS})
-
-    set(SMARTGLOB_PREFLIGHT_TARGETS "" PARENT_SCOPE)
+    sdbg("begin smartglob_add_dependencies()")
+    
+    sdbg("target: ${target}")
+    sdbg("SMARTGLOB_PREFLIGHT_TARGETS: ${SMARTGLOB_PREFLIGHT_TARGETS}")
+    
+    if (SMARTGLOB_PREFLIGHT_TARGETS)
+        sdbg("setting targets...")
+        add_dependencies(${target} ${SMARTGLOB_PREFLIGHT_TARGETS})    
+        set(SMARTGLOB_PREFLIGHT_TARGETS "" PARENT_SCOPE)
+    endif()
+    
+    sdbg("end smartglob_add_dependencies()")
 
 endfunction()
 
 function(smartglob_preflight cache_file)
 
+    sdbg("begin smartglob_preflight()")
+
     ## open the cache file
 
     if(NOT EXISTS ${cache_file})
-        message(WARNING "Could not find smartglob cache file : ${cache_file}")
+        message(FATAL_ERROR "Could not find smartglob cache file : ${cache_file}")
     endif()
 
     file(STRINGS ${cache_file} last_glob)
@@ -146,6 +203,10 @@ function(smartglob_preflight cache_file)
     list(GET last_glob 2 pattern)
     
     list(REMOVE_AT last_glob 0 1 2)
+    
+    sdbg("source_dir: ${source_dir}")
+    sdbg("path: ${path}")
+    sdbg("pattern: ${pattern}")
 
     ## glob directory and diff with the last generated glob definition
 
@@ -162,9 +223,24 @@ function(smartglob_preflight cache_file)
     if(diff)
         
         execute_process(COMMAND cmake -E touch ${source_dir}/CMakeLists.txt)
-        message(WARNING "A glob has changed, next build will regenerate!")
+        
+        message(WARNING "*** SmartGlob Warning ***")
+        
+        message("SmartGlob detected a glob change!!  Rebuild to update projects and caches.")
+        
+        foreach(file ${a})
+            message("  Removed: ${file}")
+        endforeach()
+
+        foreach(file ${b})
+            message("  Added: ${file}")
+        endforeach()
+        
+        message(\n)
         
     endif()
+    
+    sdbg("end smartglob_preflight()")
 
 endfunction()
 

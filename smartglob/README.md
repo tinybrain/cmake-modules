@@ -108,6 +108,6 @@ Sets any previously defined preflight targets listed in `SMARTGLOB_PREFLIGHTS` a
 If a glob is to be used in more than one target, its preflight target will need to be added manually, e.g.
 
 ```cmake
-add_dependencies(my-library smartglob-src-myfiles-stuff)
-add_dependencies(my-executable smartglob-src-myfiles-stuff)
+add_dependencies(first-executable smartglob-src-myfiles-stuff)
+add_dependencies(second-executable smartglob-src-myfiles-stuff)
 ```

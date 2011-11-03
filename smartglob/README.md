@@ -107,10 +107,10 @@ Easy peasy, lemon squeazy!
 **smartglob**
 
 ```cmake
-smartglob(<out filelist var> <glob path> [ EXTENSIONS | REGEX  <filter> ])
+smartglob(<out filelist> <path> [ EXTENSIONS | REGEX  <filter> ])
 ```
 
-Glob the files in `<glob path>` and put the results in `<out filelist var>`.  
+Glob the files in `<path>` and put the results in `<out filelist>`.  
 
 A glob `<filter>` may be specified with :
 
@@ -133,10 +133,10 @@ Otherwise the default filter is used :
 **smartglob_format_path**
 
 ```cmake
-smartglob_format_prefix(<out prefix var> <path> [TARGET])
+smartglob_format_prefix(<out prefix> <path> [TARGET])
 ```
 
-Generate a smartglob prefix or target name from `<path>`, and assigns it to `<out prefix var>`.
+Generate a smartglob prefix or target name from `<path>`, and assigns it to `<out prefix>`.
 
 ```
 TARGET 	Prepends 'smartglob-' to the prefix to produce a target name.

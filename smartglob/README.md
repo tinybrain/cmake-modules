@@ -110,7 +110,11 @@ Easy peasy, lemon squeazy!
 smartglob(<out filelist> <path> [ EXTENSIONS | REGEX  <filter> ])
 ```
 
-Glob the files in `<path>` and put the results in `<out filelist>`.  
+Glob the files in `<path>` and put the results in `<out filelist>`.
+
+Produces a glob definition file in `${CMAKE_BINARY_DIR}/smartglob/`.
+
+Creates a preflight target and appends it to `SMARTGLOB_PREFLIGHTS` in the parent scope.
 
 A glob `<filter>` may be specified with :
 
@@ -124,11 +128,6 @@ Otherwise the default filter is used :
 ```
 ".h .hpp .hxx .c .cpp .cxx .m .mm"
 ```
-
-* Produces a glob definition file in `${CMAKE_BINARY_DIR}/smartglob/`.
-
-* Creates a preflight target and appends it to `SMARTGLOB_PREFLIGHTS` in the parent scope.
-
 
 **smartglob_format_path**
 

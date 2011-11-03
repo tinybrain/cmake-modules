@@ -3,13 +3,54 @@ SmartGlob.cmake
 
 The built in functions for building source file lists using globs are convenient, however frowned upon because any changes to the globbed directories are not detected during CMake's check phase.
 
-SmartGlob tries to simultaneously have and eat cake, by caching the result of each glob and using it to diff the contents of the directory.
+SmartGlob duplicitously attempts to both eat and have cake by maintaining a cache of the result of each glob.  It will then diff the expected glob result with the current contents and force a regeneration if there are any changes.
 
-### Example
+### An Example
 
-Get the example and generate a build.
+Import the module.
 
-```bash
+```cmake
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/../modules)
+
+include(SmartGlob)
+```
+
+Glob a directory.
+
+```cmake
+# use the default filter
+smartglob(GLOB_ME_SRCS src/glob-me)
+```
+
+or maybe...
+
+```cmake
+# increasificate some specificacity
+smartglob(GLOB_ME_SRCS src/glob-me REGEX "my-special-[0-9A-Za-z]*\.[h|c]$")
+```
+
+Add the result to a target.
+
+```cmake
+add_executable(hello
+	${GLOB_ME_SRCS}
+	src/main.c
+	)
+```
+
+Finally, add any generated preflight dependancies to the target.
+
+```cmake
+smartglob_add_dependencies(hello)
+```
+
+### Building It
+
+Here's the included example in operation.
+
+First, get it and make a shadow build directory.
+
+```
 $ git clone git@github.com:llamatron/cmake-modules.git
 $ mkdir cmake-modules/smartglob/build && cd $_
 $ cmake ../example/
@@ -17,7 +58,7 @@ $ cmake ../example/
 
 The globbed directory `src/glob-me` produces the preflight target `smartglob-src-glob-me`.
 
-```bash
+```
 $ make
 Scanning dependencies of target smartglob-src-glob-me
 [  0%] Built target smartglob-src-glob-me
@@ -30,7 +71,7 @@ Linking C executable hello
 
 Now add a new source file and try to build.
 
-```bash
+```
 $ touch ../example/src/glob-me/new_thing.c
 $ make
 CMake Warning at /scratch/cmake-modules/smartglob/modules/SmartGlob.cmake:166 (message):
@@ -48,7 +89,7 @@ SmartGlob detected a glob change!!  Rebuild to update projects and caches.
 
 Try not to over-exert yourself.
 
-```bash
+```
 $ make
 -- Configuring done
 -- Generating done
@@ -63,51 +104,59 @@ Easy peasy, lemon squeazy!
 
 ### Functions
 
-**smartglob** : Glob the files in a given path.
+**smartglob**
 
 ```cmake
 smartglob(<out filelist var> <glob path> [ EXTENSIONS | REGEX  <filter> ])
 ```
 
-```
-	EXTENSIONS	Indicates <filter> is a space delimited list of extensions.
-	REGEX		Indicates <filter> is a literal regular expression.
-```
-		
+Glob the files in `<glob path>` and put the results in `<out filelist var>`.  
 
-Globs the files in `<glob path>` and puts the results in `<out filelist var>`, filtered either with the default extension list or a user defined list.
+A glob `<filter>` may be specified with :
 
-The default extensions filter includes the most common native source file types and is defined as :
+```
+EXTENSIONS 	Space or comma delimited list of extensions.
+REGEX 		Regular Expression.
+```
+	
+Otherwise the default filter is used :
 
 ```
 ".h .hpp .hxx .c .cpp .cxx .m .mm"
 ```
 
-Each glob generates a glob definition file in `${CMAKE_BINARY_DIR}/smartglob/` and a custom preflight target which must be set as a dependancy of the current target. The dependant target names are appended to `SMARTGLOB_PREFLIGHTS` in the parent scope.
+* Produces a glob definition file in `${CMAKE_BINARY_DIR}/smartglob/`.
 
-**smartglob_format_path** : Generate a smartglob prefix or target from a path.
+* Creates a preflight target and appends it to `SMARTGLOB_PREFLIGHTS` in the parent scope.
+
+
+**smartglob_format_path**
 
 ```cmake
-smartglob_format_prefix(<out result var> <path> [TARGET])
+smartglob_format_prefix(<out prefix var> <path> [TARGET])
 ```
 
+Generate a smartglob prefix or target name from `<path>`, and assigns it to `<out prefix var>`.
+
 ```
-	TARGET 	Prepends 'smartglob-' to the prefix to produce a target name.
+TARGET 	Prepends 'smartglob-' to the prefix to produce a target name.
 ```	
 
 If the globbed directory is e.g. `SRC/Some Functions/` the prefix will be formatted as `src-some_functions`.
 
-**smartglob_add_dependencies** : Add previously generated smart glob targets to the specified target.
+**smartglob_add_dependencies**
 
 ```cmake
 smartglob_add_dependencies(<target>)
 ```
 
-Sets any previously defined preflight targets listed in `SMARTGLOB_PREFLIGHTS` as dependant targets of `<target>`.  The list of preflight targets is then cleared for the next target.
+Sets any preflight targets listed in `SMARTGLOB_PREFLIGHTS` as dependant targets of `<target>`.  
 
-If a glob is to be used in more than one target, its preflight target will need to be added manually, e.g.
+The list of preflight targets is cleared for the next target.
+
+If a glob is to be used in more than one target, its preflight target will need to be added manually, e.g.  :
 
 ```cmake
-add_dependencies(first-executable smartglob-src-myfiles-stuff)
-add_dependencies(second-executable smartglob-src-myfiles-stuff)
+add_dependencies(first-executable smartglob-src-some_functions)
+add_dependencies(second-executable smartglob-src-some_functions)
 ```

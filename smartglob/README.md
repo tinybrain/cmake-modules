@@ -9,7 +9,7 @@ SmartGlob tries to simultaneously have and eat cake, by caching the result of ea
 
 Get the example and generate a build.
 
-```
+```bash
 $ git clone git@github.com:llamatron/cmake-modules.git
 $ mkdir cmake-modules/smartglob/build && cd $_
 $ cmake ../example/
@@ -17,7 +17,7 @@ $ cmake ../example/
 
 The globbed directory `src/glob-me` produces the preflight target `smartglob-src-glob-me`.
 
-```
+```bash
 $ make
 Scanning dependencies of target smartglob-src-glob-me
 [  0%] Built target smartglob-src-glob-me
@@ -30,7 +30,7 @@ Linking C executable hello
 
 Now add a new source file and try to build.
 
-```
+```bash
 $ touch ../example/src/glob-me/new_thing.c
 $ make
 CMake Warning at /scratch/cmake-modules/smartglob/modules/SmartGlob.cmake:166 (message):
@@ -48,7 +48,7 @@ SmartGlob detected a glob change!!  Rebuild to update projects and caches.
 
 Try not to over-exert yourself.
 
-```
+```bash
 $ make
 -- Configuring done
 -- Generating done

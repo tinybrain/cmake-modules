@@ -51,7 +51,7 @@ Here's the included example in operation.
 First, get it and make a shadow build directory.
 
 ```
-$ git clone git@github.com:llamatron/cmake-modules.git
+$ git clone git@github.com:pfarq/cmake-modules.git
 $ mkdir cmake-modules/smartglob/build && cd $_
 $ cmake ../example/
 ```
